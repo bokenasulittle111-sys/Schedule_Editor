@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>科目データ編集</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap">
+  <style>
+    :root {
+      --color-primary: #3B82F6;
+      --color-secondary: #8B5CF6;
+      --color-danger: #EF4444;
+      --color-bg: #F9FAFB;
+      --color-surface: #FFFFFF;
+      --color-border: #E5E7EB;
+      --color-text: #1F2937;
+      --color-text-light: #6B7280;
+      --color-conflict-bg: #FEF2F2;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --color-bg: #111827;
+        --color-surface: #1F2937;
+        --color-border: #374151;
+        --color-text: #F3F4F6;
+        --color-text-light: #D1D5DB;
+        --color-conflict-bg: #3B1F24;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --color-bg: #111827;
+      --color-surface: #1F2937;
+      --color-border: #374151;
+      --color-text: #F3F4F6;
+      --color-text-light: #D1D5DB;
+      --color-conflict-bg: #3B1F24;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 16px;
+    }
+
+    /* PCでの編集を前提に、画面幅いっぱいまで使う */
+    .container { max-width: 2000px; margin: 0 auto; }
+
+    header {
+      padding: 20px 0;
+      border-bottom: 2px solid var(--color-border);
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h1 { font-family: 'Poppins', sans-serif; font-size: 26px; font-weight: 700; }
+    h2 { font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+    .subtitle { color: var(--color-text-light); }
+
+    .card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab {
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+      color: white;
+      border-color: transparent;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); color: white; }
+    .btn-secondary { background: var(--color-bg); color: var(--color-primary); border: 1px solid var(--color-primary); }
+    .btn-danger { background: var(--color-danger); color: white; }
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn-icon.delete { color: var(--color-danger); }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .toolbar label { font-weight: 600; }
+
+    input[type="text"], input[type="number"], select, textarea {
+      padding: 7px 9px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13px;
+      background: var(--color-bg);
+      color: var(--color-text);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+    input.invalid { border-color: var(--color-danger); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+    th, td { border-bottom: 1px solid var(--color-border); padding: 8px 6px; text-align: left; vertical-align: middle; }
+    th { font-size: 12px; color: var(--color-text-light); font-weight: 600; white-space: nowrap; }
+    td input[type="text"] { width: 100%; }
+    td.col-code { width: 130px; }
+    td.col-name { min-width: 260px; }
+    th.col-select, td.col-select { width: 32px; text-align: center; }
+    th.col-select input, td.col-select input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
+    tr.selected td { background: rgba(59, 130, 246, 0.10); }
+
+    /* 科目の追加（件数指定・まとめて入力） */
+    .add-controls { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .add-controls input[type="number"] { width: 64px; }
+    .add-controls .unit { color: var(--color-text-light); font-size: 13px; }
+
+    .bulk-dialog {
+      margin: auto;
+      width: min(760px, 92vw);
+      padding: 24px;
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+    }
+    .bulk-dialog::backdrop { background: rgba(0, 0, 0, 0.5); }
+    .bulk-dialog textarea {
+      width: 100%;
+      height: 260px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      white-space: pre;
+    }
+
+    .bulk-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 18px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      border: 1px solid var(--color-primary);
+      border-radius: 8px;
+      /* スクロール時に下の行が透けないよう、不透明な背景に薄い青を重ねる */
+      background: linear-gradient(rgba(59, 130, 246, 0.10), rgba(59, 130, 246, 0.10)), var(--color-surface);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    .bulk-bar[hidden] { display: none; }
+    .bulk-count { color: var(--color-primary); }
+    .bulk-item { display: flex; align-items: center; gap: 6px; }
+    .bulk-label { font-size: 12px; font-weight: 600; color: var(--color-text-light); }
+    .bulk-item input[type="text"] { width: 130px; }
+    td.col-category { width: 140px; }
+    td.col-category input { min-width: 120px; }
+    td.col-url { min-width: 190px; }
+    td.col-url input { min-width: 170px; }
+    .url-open { margin-left: 6px; font-size: 11px; color: var(--color-primary); white-space: nowrap; }
+    td.col-code input { min-width: 100px; }
+    td.col-actions { white-space: nowrap; width: 110px; }
+    tr.conflict td { background: var(--color-conflict-bg); }
+    .row-note { font-size: 11px; color: var(--color-danger); margin-top: 3px; }
+
+    .period-toggles { display: flex; gap: 3px; }
+    .period-toggles label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border: 1px solid var(--color-border);
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 12px;
+      user-select: none;
+    }
+    .period-toggles input { display: none; }
+    .period-toggles label.on { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+
+    .check-group { display: inline-flex; gap: 10px; flex-wrap: wrap; }
+    .check-group label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+
+    .group-fields {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field > span { font-weight: 600; font-size: 12px; color: var(--color-text-light); }
+    .hint { font-size: 12px; color: var(--color-text-light); margin-bottom: 12px; }
+
+    /* プレビュー */
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 50px repeat(6, minmax(0, 1fr));
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 11px;
+    }
+    .preview-grid > div { border: 1px solid var(--color-border); padding: 4px; min-height: 44px; }
+    .preview-grid .ph {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+      color: white; font-weight: 600; text-align: center; min-height: 0;
+    }
+    .preview-grid .pl { background: var(--color-bg); font-weight: 700; color: var(--color-primary); text-align: center; }
+    .preview-grid .pc.conflict { background: var(--color-conflict-bg); }
+    .chip { display: block; border-radius: 3px; padding: 2px 4px; margin-bottom: 2px; color: white; line-height: 1.3; word-break: break-word; }
+    .chip[data-type="required"] { background: #DC2626; }
+    .chip[data-type="elective-required"] { background: #D97706; }
+    .chip[data-type="elective"] { background: #059669; }
+    .chip[data-type="other"] { background: #4B5563; }
+
+    textarea#output { width: 100%; height: 280px; font-family: Consolas, monospace; font-size: 12px; white-space: pre; }
+
+    .status { font-size: 13px; color: var(--color-text-light); }
+    .status.dirty { color: var(--color-danger); font-weight: 600; }
+    .error-box {
+      background: var(--color-conflict-bg);
+      border: 1px solid var(--color-danger);
+      color: var(--color-danger);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+  </style>
+  <script src="required_curriculum.js"></script>
+  <script src="elective_required.js"></script>
+  <script src="syllabus_data.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>🛠 科目データ編集</h1>
+        <p class="subtitle">必修カリキュラム・選択必修・シラバスの科目を編集し、JSファイルとして保存します。</p>
+      </div>
+      <span class="status" id="status">変更なし</span>
+    </header>
+
+    <div id="loadError"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="curriculum">必修カリキュラム（required_curriculum.js）</button>
+      <button class="tab" data-tab="groups">選択必修（elective_required.js）</button>
+      <button class="tab" data-tab="syllabus">シラバス（syllabus_data.js）</button>
+    </div>
+
+    <!-- 必修カリキュラム -->
+    <section id="tab-curriculum">
+      <div class="card">
+        <div class="toolbar">
+          <label for="curriculumKey">学年・学期</label>
+          <select id="curriculumKey"></select>
+          <span id="curriculumAddControls"></span>
+        </div>
+        <p class="hint">時限は1つだけ選ぶと period、複数選ぶと periods（連続コマ）として保存されます。同じ曜日・時限に重なる科目は赤く表示されます。</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>授業コード</th><th>科目名</th><th>時限</th><th>曜日</th><th>区分</th><th></th></tr></thead>
+            <tbody id="curriculumBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>時間割プレビュー</h2>
+        <div class="preview-grid" id="curriculumPreview"></div>
+      </div>
+    </section>
+
+    <!-- 選択必修 -->
+    <section id="tab-groups" hidden>
+      <div class="card">
+        <div class="toolbar">
+          <label for="groupSelect">グループ</label>
+          <select id="groupSelect"></select>
+          <button class="btn btn-secondary" id="addGroup">+ グループを追加</button>
+          <button class="btn btn-danger" id="deleteGroup">グループを削除</button>
+        </div>
+        <div id="groupEditor"></div>
+      </div>
+    </section>
+
+    <!-- シラバス -->
+    <section id="tab-syllabus" hidden>
+      <div class="card">
+        <div class="toolbar">
+          <label for="syllabusCategory">分類</label>
+          <select id="syllabusCategory"></select>
+          <label for="syllabusType">区分</label>
+          <select id="syllabusType"></select>
+          <input type="text" id="syllabusSearch" placeholder="科目名・授業コードで検索" style="min-width: 220px;">
+          <span id="syllabusAddControls"></span>
+          <span class="status" id="syllabusCount"></span>
+        </div>
+        <p class="hint">時限・曜日は空欄でも構いません（空きコマからの追加や科目検索の自動入力に使われます）。学年・学期を選ぶと、空きコマの候補がその学年・学期のときだけ表示されます（未選択ならいつでも表示）。分類はファイル内で見出しコメントとしても出力されます。</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>分類</th><th>授業コード</th><th>科目名</th><th>時限</th><th>曜日</th><th>区分</th><th>学年</th><th>学期</th><th>シラバスURL</th><th></th></tr></thead>
+            <tbody id="syllabusBody"></tbody>
+          </table>
+        </div>
+        <datalist id="categoryList"></datalist>
+      </div>
+    </section>
+
+    <!-- 出力 -->
+    <div class="card">
+      <h2>保存</h2>
+      <p class="hint">「保存」を押すと保存先を選べます（Chrome / Edge）。対応していないブラウザではダウンロードされるので、schedule_grid.html と同じフォルダに上書きしてください。元ファイルのコメントアウト行は保存されません。</p>
+      <div class="toolbar">
+        <button class="btn btn-primary" id="saveCurriculum">required_curriculum.js を保存</button>
+        <button class="btn btn-primary" id="saveGroups">elective_required.js を保存</button>
+        <button class="btn btn-primary" id="saveSyllabus">syllabus_data.js を保存</button>
+        <button class="btn btn-secondary" id="copyOutput">表示中のコードをコピー</button>
+        <select id="outputSelect">
+          <option value="curriculum">required_curriculum.js</option>
+          <option value="groups">elective_required.js</option>
+          <option value="syllabus">syllabus_data.js</option>
+        </select>
+      </div>
+      <textarea id="output" readonly></textarea>
+    </div>
+  </div>
+
+  <!-- 科目をまとめて入力 -->
+  <dialog id="bulkInputDialog" class="bulk-dialog">
+    <h2>科目をまとめて入力</h2>
+    <p class="hint">1行に1科目ずつ入力します。「授業コード」と「科目名」はタブ（Excel から貼り付けた場合）またはカンマで区切ってください。英数字だけの行は授業コード、それ以外は科目名として扱います。追加した科目は選択された状態になるので、一括設定バーで時限・曜日などをまとめて設定できます。</p>
+    <textarea id="bulkInputText" placeholder="B31L03A1&#9;プログラミング基礎(メ)&#10;B31L02A1, データサイエンス入門1(メ)&#10;科目名だけの行"></textarea>
+    <p class="status" id="bulkInputPreview"></p>
+    <div class="toolbar" style="justify-content: flex-end; margin: 12px 0 0;">
+      <button type="button" class="btn btn-secondary" id="bulkInputCancel">キャンセル</button>
+      <button type="button" class="btn btn-primary" id="bulkInputOk">追加</button>
+    </div>
+  </dialog>
+
+  <script>
+    const PERIODS = [1, 2, 3, 4, 5];
+    const DAYS = { mon: '月', tue: '火', wed: '水', thu: '木', fri: '金', sat: '土' };
+    const TYPES = { 'required': '必修', 'elective-required': '選択必修', 'elective': '選択授業', 'other': 'その他' };
+    const CURRICULUM_KEYS = ['1_1', '1_2', '2_1', '2_2', '3_1', '3_2', '4_1', '4_2'];
+    const keyLabel = key => { const [g, s] = key.split('_'); return `${g}年${s === '1' ? '前期' : '後期'}`; };
+
+    // ---------- データ読み込み ----------
+    const ROW_KEYS = ['code', 'name', 'period', 'periods', 'day', 'type', 'category', 'url'];
+
+    // 編集しない項目（grade, semester, group など）は extra に保持してそのまま書き出す
+    function toRow(c) {
+      const periods = (c.periods || (c.period != null && c.period !== '' ? [c.period] : [])).map(Number);
+      const extra = {};
+      Object.keys(c).filter(k => !ROW_KEYS.includes(k)).forEach(k => { extra[k] = c[k]; });
+      return { code: c.code || '', name: c.name || '', periods, day: c.day || '', type: c.type || 'required', category: c.category, url: c.url || '', extra };
+    }
+
+    const state = { curriculum: {}, groups: [], syllabus: [] };
+    // 一括設定用の選択（タブごと）
+    const selections = { curriculum: new Set(), groups: new Set(), syllabus: new Set() };
+    let dirty = false;
+
+    (function load() {
+      const errors = [];
+      if (typeof CURRICULUM === 'undefined') errors.push('required_curriculum.js');
+      if (typeof ELECTIVE_REQUIRED_GROUPS === 'undefined') errors.push('elective_required.js');
+      if (typeof SYLLABUS_COURSES === 'undefined') errors.push('syllabus_data.js');
+      if (errors.length) {
+        document.getElementById('loadError').innerHTML =
+          `<div class="error-box">${errors.join('、')} を読み込めませんでした。このファイルと同じフォルダに置いてください。</div>`;
+      }
+
+      const cur = typeof CURRICULUM !== 'undefined' ? CURRICULUM : {};
+      const keys = [...CURRICULUM_KEYS, ...Object.keys(cur).filter(k => !CURRICULUM_KEYS.includes(k))];
+      keys.forEach(k => { state.curriculum[k] = (cur[k] || []).map(toRow); });
+
+      const groups = typeof ELECTIVE_REQUIRED_GROUPS !== 'undefined' ? ELECTIVE_REQUIRED_GROUPS : {};
+      state.groups = Object.entries(groups).map(([id, g]) => ({
+        id,
+        name: g.name || '',
+        description: g.description || '1つ選択してください',
+        grade: (g.grade || []).map(Number),
+        semester: (g.semester || []).map(String),
+        maxSelect: g.maxSelect || 1,
+        periods: (g.periods || (g.period != null ? [g.period] : [])).map(Number),
+        day: g.day || '',
+        courses: (g.courses || []).map(toRow)
+      }));
+
+      state.syllabus = (typeof SYLLABUS_COURSES !== 'undefined' ? SYLLABUS_COURSES : []).map(c => {
+        const row = { ...toRow(c), category: c.category || '' };
+        // シラバスは学年・学期を編集できるので extra から取り出す
+        row.grade = (c.grade || []).map(Number);
+        row.semester = (c.semester || []).map(String);
+        delete row.extra.grade;
+        delete row.extra.semester;
+        return row;
+      });
+    })();
+
+    function markDirty() {
+      dirty = true;
+      const s = document.getElementById('status');
+      s.textContent = '未保存の変更があります';
+      s.classList.add('dirty');
+      renderOutput();
+    }
+
+    function markSaved() {
+      dirty = false;
+      const s = document.getElementById('status');
+      s.textContent = '保存しました';
+      s.classList.remove('dirty');
+    }
+
+    window.addEventListener('beforeunload', e => {
+      if (dirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    // ---------- 共通：科目テーブル ----------
+    function el(tag, props = {}, children = []) {
+      const node = Object.assign(document.createElement(tag), props);
+      children.forEach(c => node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c));
+      return node;
+    }
+
+    function selectEl(options, value, onChange, emptyLabel) {
+      const s = el('select');
+      if (emptyLabel !== undefined) s.appendChild(el('option', { value: '', textContent: emptyLabel }));
+      Object.entries(options).forEach(([v, label]) => s.appendChild(el('option', { value: v, textContent: label })));
+      s.value = value;
+      s.onchange = () => onChange(s.value);
+      return s;
+    }
+
+    /** options: [{ value, label, title }] のトグルボタン群。選択中の value 配列を onChange に渡す */
+    function toggleGroup(options, selected, onChange) {
+      const wrap = el('div', { className: 'period-toggles' });
+      options.forEach(o => {
+        const on = selected.includes(o.value);
+        const cb = el('input', { type: 'checkbox', checked: on });
+        const label = el('label', { className: on ? 'on' : '', title: o.title }, [cb, o.label]);
+        cb.onchange = () => {
+          label.classList.toggle('on', cb.checked);
+          const inputs = wrap.querySelectorAll('input');
+          onChange(options.filter((_, i) => inputs[i].checked).map(x => x.value));
+        };
+        wrap.appendChild(label);
+      });
+      return wrap;
+    }
+
+    function periodToggles(periods, onChange) {
+      return toggleGroup(PERIODS.map(p => ({ value: p, label: String(p), title: `${p}限` })), periods, onChange);
+    }
+
+    const GRADE_OPTIONS = [1, 2, 3, 4].map(g => ({ value: g, label: String(g), title: `${g}年` }));
+    const SEMESTER_OPTIONS = [{ value: '1', label: '前', title: '前期' }, { value: '2', label: '後', title: '後期' }];
+
+    /** 科目をコピーする（配列は中身も複製する） */
+    function cloneRow(row) {
+      const clone = { ...row, periods: [...row.periods], extra: { ...row.extra } };
+      if (row.grade) clone.grade = [...row.grade];
+      if (row.semester) clone.semester = [...row.semester];
+      return clone;
+    }
+
+    /**
+     * rows: 科目配列 / opts.slotRequired: 時限・曜日が必須か / opts.onChange: 変更時の再描画
+     * opts.conflicts: 行index → 重複相手の名前配列
+     * opts.visible: 表示する行indexの配列（絞り込み用。省略時は全行）
+     * opts.showCategory: 分類列を表示するか / opts.onCategoryChange: 分類変更時の処理
+     * opts.dayEmptyLabel: 曜日未指定の表示名
+     * opts.selection: 一括設定用に選択中の行（Set）
+     */
+    function renderCourseRows(tbody, rows, opts) {
+      tbody.innerHTML = '';
+      const visible = opts.visible || rows.map((_, i) => i);
+      const selection = opts.selection;
+
+      // 存在しなくなった行を選択から外す
+      if (selection) [...selection].forEach(r => { if (!rows.includes(r)) selection.delete(r); });
+
+      const bulk = selection ? setupBulkEditing(tbody, rows, visible, selection, opts) : null;
+
+      visible.forEach((i, k) => {
+        const row = rows[i];
+        const conflictNames = (opts.conflicts && opts.conflicts[i]) || [];
+        const tr = el('tr', { className: conflictNames.length ? 'conflict' : '' });
+
+        if (selection) {
+          const check = el('input', { type: 'checkbox', checked: selection.has(row), title: '一括設定の対象にする' });
+          tr.classList.toggle('selected', selection.has(row));
+          check.onchange = () => {
+            if (check.checked) selection.add(row); else selection.delete(row);
+            tr.classList.toggle('selected', check.checked);
+            bulk.refresh();
+          };
+          tr.appendChild(el('td', { className: 'col-select' }, [check]));
+        }
+
+        const code = el('input', { type: 'text', value: row.code, placeholder: '例: B31L03A1' });
+        code.classList.toggle('invalid', !row.code.trim());
+        code.oninput = () => { row.code = code.value; code.classList.toggle('invalid', !row.code.trim()); markDirty(); };
+
+        const name = el('input', { type: 'text', value: row.name, placeholder: '科目名' });
+        name.classList.toggle('invalid', !row.name.trim());
+        name.oninput = () => { row.name = name.value; name.classList.toggle('invalid', !row.name.trim()); markDirty(); opts.onLiveChange && opts.onLiveChange(); };
+
+        const nameCell = el('td', { className: 'col-name' }, [name]);
+        const notes = [];
+        if (conflictNames.length) notes.push(`${conflictNames.join('・')} と重複`);
+        if (opts.slotRequired && (!row.periods.length || !row.day)) notes.push('時限と曜日を指定してください');
+        if (notes.length) nameCell.appendChild(el('div', { className: 'row-note', textContent: notes.join(' / ') }));
+
+        const periods = periodToggles(row.periods, next => { row.periods = next; markDirty(); opts.onChange(); });
+        const dayEmptyLabel = opts.dayEmptyLabel || (opts.slotRequired ? '選択' : '（グループ共通）');
+        const day = selectEl(DAYS, row.day, v => { row.day = v; markDirty(); opts.onChange(); }, dayEmptyLabel);
+        const type = selectEl(TYPES, row.type, v => { row.type = v; markDirty(); opts.onChange(); });
+
+        // 表示中の行どうしで入れ替える（絞り込み中でも元の配列の順番を入れ替える）
+        const move = (delta) => {
+          const j = visible[k + delta];
+          if (j === undefined) return;
+          [rows[i], rows[j]] = [rows[j], rows[i]];
+          markDirty(); opts.onChange();
+        };
+        const up = el('button', { className: 'btn-icon', textContent: '↑', title: '上へ', onclick: () => move(-1) });
+        const down = el('button', { className: 'btn-icon', textContent: '↓', title: '下へ', onclick: () => move(1) });
+        const copy = el('button', {
+          className: 'btn-icon', textContent: '複製', title: 'この科目をコピーして1つ下に追加', onclick: () => {
+            const clone = cloneRow(row);
+            rows.splice(i + 1, 0, clone);
+            if (selection) { selection.clear(); selection.add(clone); }
+            markDirty();
+            opts.onChange();
+            opts.onCategoryChange && opts.onCategoryChange();
+          }
+        });
+        const del = el('button', {
+          className: 'btn-icon delete', textContent: '削除', onclick: () => {
+            if (!confirm(`「${row.name || '（名称未設定）'}」を削除しますか？`)) return;
+            rows.splice(i, 1); markDirty(); opts.onChange();
+          }
+        });
+
+        if (opts.showCategory) {
+          const category = el('input', { type: 'text', value: row.category || '', placeholder: '分類' });
+          category.setAttribute('list', 'categoryList');
+          category.onchange = () => { row.category = category.value.trim(); markDirty(); opts.onCategoryChange && opts.onCategoryChange(); };
+          tr.appendChild(el('td', { className: 'col-category' }, [category]));
+        }
+
+        tr.append(
+          el('td', { className: 'col-code' }, [code]),
+          nameCell,
+          el('td', {}, [periods]),
+          el('td', {}, [day]),
+          el('td', {}, [type])
+        );
+
+        if (opts.showTerm) {
+          const grade = toggleGroup(GRADE_OPTIONS, row.grade || [], next => { row.grade = next; markDirty(); });
+          const semester = toggleGroup(SEMESTER_OPTIONS, row.semester || [], next => { row.semester = next; markDirty(); });
+          tr.append(el('td', {}, [grade]), el('td', {}, [semester]));
+        }
+
+        if (opts.showUrl) {
+          const url = el('input', { type: 'text', value: row.url || '', placeholder: 'https://…（シラバスのURL）' });
+          url.oninput = () => { row.url = url.value.trim(); markDirty(); };
+          const cell = el('td', { className: 'col-url' }, [url]);
+          if (row.url) {
+            const open = el('a', { href: row.url, target: '_blank', rel: 'noopener noreferrer', textContent: '開く ↗', className: 'url-open' });
+            cell.appendChild(open);
+          }
+          tr.appendChild(cell);
+        }
+
+        tr.append(el('td', { className: 'col-actions' }, [up, ' ', down, ' ', copy, ' ', del]));
+        tbody.appendChild(tr);
+      });
+
+      if (visible.length === 0) {
+        const message = rows.length === 0 ? '科目がありません。「+ 科目を追加」から追加してください。' : '条件に合う科目がありません。';
+        const colSpan = 6 + (selection ? 1 : 0) + (opts.showCategory ? 1 : 0) + (opts.showTerm ? 2 : 0) + (opts.showUrl ? 1 : 0);
+        tbody.appendChild(el('tr', {}, [el('td', { colSpan, className: 'hint', textContent: message })]));
+      }
+
+      if (bulk) bulk.refresh();
+    }
+
+    /**
+     * 一括設定：表の見出しに「表示中をすべて選択」、表の上に一括設定バーを用意する
+     * 戻り値の refresh() で選択件数や見出しチェックの状態を更新する
+     */
+    function setupBulkEditing(tbody, rows, visible, selection, opts) {
+      const table = tbody.closest('table');
+      const wrap = tbody.closest('.table-wrap') || table;
+
+      // 見出しの一番左に全選択チェック
+      const headRow = table.querySelector('thead tr');
+      let selectTh = headRow.querySelector('th.col-select');
+      if (!selectTh) {
+        selectTh = el('th', { className: 'col-select' }, [el('input', { type: 'checkbox', title: '表示中の科目をすべて選択' })]);
+        headRow.insertBefore(selectTh, headRow.firstChild);
+      }
+      const headCheck = selectTh.querySelector('input');
+      const visibleRows = () => visible.map(i => rows[i]);
+      headCheck.onchange = () => {
+        const all = visibleRows().length > 0 && visibleRows().every(r => selection.has(r));
+        visibleRows().forEach(r => all ? selection.delete(r) : selection.add(r));
+        opts.onChange();
+      };
+
+      // 一括設定バー
+      let bar = wrap.previousElementSibling;
+      if (!bar || !bar.classList.contains('bulk-bar')) {
+        bar = el('div', { className: 'bulk-bar' });
+        wrap.parentNode.insertBefore(bar, wrap);
+      }
+      bar.innerHTML = '';
+
+      const selectedRows = () => rows.filter(r => selection.has(r));
+      const apply = (fn) => {
+        const targets = selectedRows();
+        if (!targets.length) return;
+        targets.forEach(fn);
+        markDirty();
+        opts.onChange();
+      };
+      const applyButton = (onclick) => el('button', { className: 'btn-icon', textContent: '適用', onclick });
+      const item = (label, control, onApply) =>
+        el('div', { className: 'bulk-item' }, [el('span', { className: 'bulk-label', textContent: label }), control, applyButton(onApply)]);
+
+      const count = el('strong', { className: 'bulk-count' });
+      bar.appendChild(count);
+
+      let bulkPeriods = [];
+      bar.appendChild(item('時限', periodToggles([], next => { bulkPeriods = next; }), () => apply(r => { r.periods = [...bulkPeriods]; })));
+
+      const dayEmptyLabel = opts.dayEmptyLabel || (opts.slotRequired ? '未設定' : '（グループ共通）');
+      const bulkDay = selectEl(DAYS, '', () => {}, dayEmptyLabel);
+      bar.appendChild(item('曜日', bulkDay, () => apply(r => { r.day = bulkDay.value; })));
+
+      const bulkType = selectEl(TYPES, 'required', () => {});
+      bar.appendChild(item('区分', bulkType, () => apply(r => { r.type = bulkType.value; })));
+
+      if (opts.showTerm) {
+        let bulkGrade = [];
+        let bulkSemester = [];
+        bar.appendChild(item('学年', toggleGroup(GRADE_OPTIONS, [], next => { bulkGrade = next; }), () => apply(r => { r.grade = [...bulkGrade]; })));
+        bar.appendChild(item('学期', toggleGroup(SEMESTER_OPTIONS, [], next => { bulkSemester = next; }), () => apply(r => { r.semester = [...bulkSemester]; })));
+      }
+
+      if (opts.showCategory) {
+        const bulkCategory = el('input', { type: 'text', placeholder: '分類' });
+        bulkCategory.setAttribute('list', 'categoryList');
+        bar.appendChild(item('分類', bulkCategory, () => {
+          apply(r => { r.category = bulkCategory.value.trim(); });
+          opts.onCategoryChange && opts.onCategoryChange();
+        }));
+      }
+
+      const actions = el('div', { className: 'bulk-item' }, [
+        el('button', {
+          className: 'btn-icon delete', textContent: '選択した科目を削除', onclick: () => {
+            const targets = selectedRows();
+            if (!targets.length || !confirm(`${targets.length}件の科目を削除しますか？`)) return;
+            targets.forEach(r => rows.splice(rows.indexOf(r), 1));
+            selection.clear();
+            markDirty();
+            opts.onChange();
+            opts.onCategoryChange && opts.onCategoryChange();
+          }
+        }),
+        el('button', {
+          className: 'btn-icon', textContent: '選択した科目を複製', title: '選んだ科目をそれぞれ1つ下にコピーする', onclick: () => {
+            const targets = selectedRows();
+            if (!targets.length) return;
+            const clones = [];
+            // 後ろから入れて、前の科目の位置がずれないようにする
+            targets.slice().reverse().forEach(r => {
+              const clone = cloneRow(r);
+              clones.push(clone);
+              rows.splice(rows.indexOf(r) + 1, 0, clone);
+            });
+            selection.clear();
+            clones.forEach(c => selection.add(c));
+            markDirty();
+            opts.onChange();
+            opts.onCategoryChange && opts.onCategoryChange();
+          }
+        }),
+        el('button', { className: 'btn-icon', textContent: '選択解除', onclick: () => { selection.clear(); opts.onChange(); } })
+      ]);
+      bar.appendChild(actions);
+
+      return {
+        refresh() {
+          const n = selectedRows().length;
+          bar.hidden = n === 0;
+          count.textContent = `${n}件選択中`;
+          const vis = visibleRows();
+          const selectedVisible = vis.filter(r => selection.has(r)).length;
+          headCheck.checked = vis.length > 0 && selectedVisible === vis.length;
+          headCheck.indeterminate = selectedVisible > 0 && selectedVisible < vis.length;
+        }
+      };
+    }
+
+    // ---------- 科目の追加（件数指定・まとめて入力） ----------
+    let bulkInputCallback = null;
+
+    /** 「+ 科目を追加」「件数」「まとめて入力…」を作る。onAdd には [{ code, name }] を渡す */
+    function addControls(onAdd) {
+      const count = el('input', { type: 'number', min: 1, max: 100, value: 1, title: '追加する件数' });
+      const addBtn = el('button', {
+        className: 'btn btn-primary', textContent: '+ 科目を追加', onclick: () => {
+          const n = Math.min(100, Math.max(1, Math.floor(Number(count.value)) || 1));
+          count.value = n;
+          onAdd(Array.from({ length: n }, () => ({ code: '', name: '' })));
+        }
+      });
+      const bulkBtn = el('button', { className: 'btn btn-secondary', textContent: 'まとめて入力…', onclick: () => openBulkInput(onAdd) });
+      return el('span', { className: 'add-controls' }, [addBtn, count, el('span', { className: 'unit', textContent: '件' }), bulkBtn]);
+    }
+
+    // 1行1科目。タブ区切り（Excel）→ カンマ区切り → 1列（英数字なら授業コード、それ以外は科目名）の順に解釈
+    function parseBulkInput(text) {
+      return text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+        let cols;
+        if (line.includes('\t')) cols = line.split('\t');
+        else if (line.includes(',')) { const i = line.indexOf(','); cols = [line.slice(0, i), line.slice(i + 1)]; }
+        else cols = /^[A-Za-z0-9_-]+$/.test(line) ? [line, ''] : ['', line];
+        return { code: (cols[0] || '').trim(), name: (cols[1] || '').trim() };
+      }).filter(e => !/^(授業コード|code)$/i.test(e.code));   // 見出し行は読み飛ばす
+    }
+
+    function openBulkInput(onAdd) {
+      bulkInputCallback = onAdd;
+      const text = document.getElementById('bulkInputText');
+      text.value = '';
+      updateBulkInputPreview();
+      document.getElementById('bulkInputDialog').showModal();
+      text.focus();
+    }
+
+    function updateBulkInputPreview() {
+      const n = parseBulkInput(document.getElementById('bulkInputText').value).length;
+      document.getElementById('bulkInputPreview').textContent = n ? `${n}件の科目を追加します` : '追加する科目を入力してください';
+      document.getElementById('bulkInputOk').disabled = n === 0;
+    }
+
+    document.getElementById('bulkInputText').oninput = updateBulkInputPreview;
+    document.getElementById('bulkInputCancel').onclick = () => document.getElementById('bulkInputDialog').close();
+    document.getElementById('bulkInputOk').onclick = () => {
+      const entries = parseBulkInput(document.getElementById('bulkInputText').value);
+      document.getElementById('bulkInputDialog').close();
+      if (entries.length && bulkInputCallback) bulkInputCallback(entries);
+    };
+
+    /** 追加した行を選択状態にして再描画し、最初の追加行の授業コード欄にフォーカスする */
+    function finishAdd(newRows, selection, rerender, tbodyId) {
+      selection.clear();
+      newRows.forEach(r => selection.add(r));
+      markDirty();
+      rerender();
+      const firstNew = document.querySelector(`#${tbodyId} tr.selected`);
+      if (firstNew) {
+        firstNew.scrollIntoView({ block: 'center' });
+        const codeInput = firstNew.querySelector('td.col-code input');
+        if (codeInput) codeInput.focus();
+      }
+    }
+
+    // ---------- 必修カリキュラム ----------
+    const curriculumKeySelect = document.getElementById('curriculumKey');
+    Object.keys(state.curriculum).forEach(k => {
+      curriculumKeySelect.appendChild(el('option', { value: k, textContent: `${keyLabel(k)}（${k}）` }));
+    });
+    curriculumKeySelect.onchange = () => { selections.curriculum.clear(); renderCurriculum(); };
+
+    function curriculumConflicts(rows) {
+      const slots = {};
+      rows.forEach((r, i) => r.day && r.periods.forEach(p => (slots[`${p}-${r.day}`] ||= []).push(i)));
+      const conflicts = {};
+      Object.values(slots).filter(list => list.length > 1).forEach(list => {
+        list.forEach(i => {
+          const others = list.filter(j => j !== i).map(j => rows[j].name || '（名称未設定）');
+          conflicts[i] = [...new Set([...(conflicts[i] || []), ...others])];
+        });
+      });
+      return { slots, conflicts };
+    }
+
+    function renderCurriculum() {
+      const rows = state.curriculum[curriculumKeySelect.value];
+      const { conflicts } = curriculumConflicts(rows);
+      renderCourseRows(document.getElementById('curriculumBody'), rows, {
+        slotRequired: true,
+        conflicts,
+        selection: selections.curriculum,
+        onChange: renderCurriculum,
+        onLiveChange: renderPreview
+      });
+      renderPreview();
+    }
+
+    function renderPreview() {
+      const rows = state.curriculum[curriculumKeySelect.value];
+      const { slots } = curriculumConflicts(rows);
+      const grid = document.getElementById('curriculumPreview');
+      grid.innerHTML = '';
+      grid.appendChild(el('div', { className: 'ph' }));
+      Object.values(DAYS).forEach(d => grid.appendChild(el('div', { className: 'ph', textContent: d })));
+      PERIODS.forEach(p => {
+        grid.appendChild(el('div', { className: 'pl', textContent: `${p}限` }));
+        Object.keys(DAYS).forEach(day => {
+          const idx = slots[`${p}-${day}`] || [];
+          const cell = el('div', { className: 'pc' + (idx.length > 1 ? ' conflict' : '') });
+          idx.forEach(i => {
+            const chip = el('span', { className: 'chip', textContent: rows[i].name || '（名称未設定）' });
+            chip.dataset.type = rows[i].type;
+            cell.appendChild(chip);
+          });
+          grid.appendChild(cell);
+        });
+      });
+    }
+
+    document.getElementById('curriculumAddControls').appendChild(addControls(entries => {
+      const newRows = entries.map(e => ({ code: e.code, name: e.name, periods: [], day: '', type: 'required', extra: {} }));
+      state.curriculum[curriculumKeySelect.value].push(...newRows);
+      finishAdd(newRows, selections.curriculum, renderCurriculum, 'curriculumBody');
+    }));
+
+    // ---------- 選択必修 ----------
+    const groupSelect = document.getElementById('groupSelect');
+    let currentGroupIndex = 0;
+
+    function groupLabel(g) {
+      const when = g.grade.map(n => `${n}年`).join('・') + g.semester.map(s => s === '1' ? '前期' : '後期').join('・');
+      return `${g.name || '（名称未設定）'}${when ? `（${when}）` : ''}`;
+    }
+
+    function renderGroupSelect() {
+      groupSelect.innerHTML = '';
+      state.groups.forEach((g, i) => groupSelect.appendChild(el('option', { value: i, textContent: groupLabel(g) })));
+      groupSelect.value = currentGroupIndex;
+    }
+    groupSelect.onchange = () => { currentGroupIndex = Number(groupSelect.value); selections.groups.clear(); renderGroupEditor(); };
+
+    function checkGroup(options, selected, onChange) {
+      const wrap = el('div', { className: 'check-group' });
+      Object.entries(options).forEach(([v, label]) => {
+        const cb = el('input', { type: 'checkbox', checked: selected.includes(v) });
+        cb.onchange = () => onChange(Object.keys(options).filter((k, i) => wrap.querySelectorAll('input')[i].checked));
+        wrap.appendChild(el('label', {}, [cb, label]));
+      });
+      return wrap;
+    }
+
+    function renderGroupEditor() {
+      const box = document.getElementById('groupEditor');
+      box.innerHTML = '';
+      const g = state.groups[currentGroupIndex];
+      document.getElementById('deleteGroup').disabled = !g;
+      if (!g) {
+        box.appendChild(el('p', { className: 'hint', textContent: 'グループがありません。「+ グループを追加」から追加してください。' }));
+        return;
+      }
+
+      const field = (label, input) => el('label', { className: 'field' }, [el('span', { textContent: label }), input]);
+
+      const idInput = el('input', { type: 'text', value: g.id });
+      const validId = v => /^[A-Za-z_$][\w$]*$/.test(v) && !state.groups.some((o, i) => i !== currentGroupIndex && o.id === v);
+      idInput.classList.toggle('invalid', !validId(g.id));
+      idInput.oninput = () => {
+        idInput.classList.toggle('invalid', !validId(idInput.value));
+        if (validId(idInput.value)) { g.id = idInput.value; markDirty(); }
+      };
+
+      const nameInput = el('input', { type: 'text', value: g.name });
+      nameInput.oninput = () => { g.name = nameInput.value; markDirty(); renderGroupSelect(); };
+
+      const descInput = el('input', { type: 'text', value: g.description });
+      descInput.oninput = () => { g.description = descInput.value; markDirty(); };
+
+      const grade = checkGroup({ '1': '1年', '2': '2年', '3': '3年', '4': '4年' }, g.grade.map(String), v => {
+        g.grade = v.map(Number); markDirty(); renderGroupSelect();
+      });
+      const semester = checkGroup({ '1': '前期', '2': '後期' }, g.semester, v => {
+        g.semester = v; markDirty(); renderGroupSelect();
+      });
+
+      const maxSelectInput = el('input', { type: 'number', min: 1, step: 1, value: g.maxSelect });
+      maxSelectInput.oninput = () => {
+        const n = Number(maxSelectInput.value);
+        const valid = Number.isInteger(n) && n >= 1;
+        maxSelectInput.classList.toggle('invalid', !valid);
+        if (valid) { g.maxSelect = n; markDirty(); }
+      };
+
+      const groupPeriods = periodToggles(g.periods, next => { g.periods = next; markDirty(); });
+      const groupDay = selectEl(DAYS, g.day, v => { g.day = v; markDirty(); }, '指定なし');
+
+      box.append(
+        el('div', { className: 'group-fields' }, [
+          field('グループID（英数字と _ ）', idInput),
+          field('グループ名', nameInput),
+          field('説明', descInput),
+          field('対象学年', grade),
+          field('対象学期', semester),
+          field('選択できる科目数（maxSelect）', maxSelectInput),
+          field('共通の時限', groupPeriods),
+          field('共通の曜日', groupDay)
+        ]),
+        el('p', { className: 'hint', textContent: '科目ごとの時限・曜日を空欄にすると、グループ共通の時限・曜日が使われます。同じグループ内の科目は選択肢なので、時間が重なっても問題ありません。' })
+      );
+
+      const tbody = el('tbody');
+      box.appendChild(el('div', { className: 'table-wrap' }, [
+        el('table', {}, [
+          el('thead', {}, [el('tr', {}, ['授業コード', '科目名', '時限', '曜日', '区分', ''].map(t => el('th', { textContent: t })))]),
+          tbody
+        ])
+      ]));
+      renderCourseRows(tbody, g.courses, { slotRequired: false, selection: selections.groups, onChange: renderGroupEditor });
+
+      tbody.id = 'groupCoursesBody';
+      const controls = addControls(entries => {
+        const newRows = entries.map(e => ({ code: e.code, name: e.name, periods: [], day: '', type: 'elective-required', extra: {} }));
+        g.courses.push(...newRows);
+        finishAdd(newRows, selections.groups, renderGroupEditor, 'groupCoursesBody');
+      });
+      controls.style.marginTop = '12px';
+      box.appendChild(controls);
+    }
+
+    document.getElementById('addGroup').onclick = () => {
+      let n = state.groups.length + 1;
+      while (state.groups.some(g => g.id === `group_${n}`)) n++;
+      state.groups.push({
+        id: `group_${n}`, name: '新しいグループ', description: '1つ選択してください',
+        grade: [1], semester: ['1'], maxSelect: 1, periods: [], day: '', courses: []
+      });
+      currentGroupIndex = state.groups.length - 1;
+      markDirty();
+      renderGroupSelect();
+      renderGroupEditor();
+    };
+
+    document.getElementById('deleteGroup').onclick = () => {
+      const g = state.groups[currentGroupIndex];
+      if (!g || !confirm(`グループ「${g.name}」を削除しますか？`)) return;
+      state.groups.splice(currentGroupIndex, 1);
+      currentGroupIndex = Math.max(0, currentGroupIndex - 1);
+      markDirty();
+      renderGroupSelect();
+      renderGroupEditor();
+    };
+
+    // ---------- シラバス ----------
+    const syllabusCategorySelect = document.getElementById('syllabusCategory');
+    const syllabusSearch = document.getElementById('syllabusSearch');
+    const syllabusTypeSelect = document.getElementById('syllabusType');
+    const ALL_CATEGORIES = '__all__';
+    const NO_CATEGORY = '__none__';
+
+    function syllabusCategories() {
+      return [...new Set(state.syllabus.map(c => c.category).filter(Boolean))];
+    }
+
+    function renderSyllabusCategories() {
+      const current = syllabusCategorySelect.value || ALL_CATEGORIES;
+      const categories = syllabusCategories();
+      syllabusCategorySelect.innerHTML = '';
+      syllabusCategorySelect.appendChild(el('option', { value: ALL_CATEGORIES, textContent: `すべて（${state.syllabus.length}）` }));
+      categories.forEach(cat => {
+        const n = state.syllabus.filter(c => c.category === cat).length;
+        syllabusCategorySelect.appendChild(el('option', { value: cat, textContent: `${cat}（${n}）` }));
+      });
+      const uncategorized = state.syllabus.filter(c => !c.category).length;
+      if (uncategorized) syllabusCategorySelect.appendChild(el('option', { value: NO_CATEGORY, textContent: `分類なし（${uncategorized}）` }));
+      syllabusCategorySelect.value = [...syllabusCategorySelect.options].some(o => o.value === current) ? current : ALL_CATEGORIES;
+
+      const datalist = document.getElementById('categoryList');
+      datalist.innerHTML = '';
+      categories.forEach(cat => datalist.appendChild(el('option', { value: cat })));
+
+      renderSyllabusTypes();
+    }
+
+    // 区分の選択肢（件数つき。選択中の区分は保つ）
+    function renderSyllabusTypes() {
+      const current = syllabusTypeSelect.value || ALL_CATEGORIES;
+      syllabusTypeSelect.innerHTML = '';
+      syllabusTypeSelect.appendChild(el('option', { value: ALL_CATEGORIES, textContent: `すべて（${state.syllabus.length}）` }));
+      Object.entries(TYPES).forEach(([value, label]) => {
+        const n = state.syllabus.filter(c => c.type === value).length;
+        syllabusTypeSelect.appendChild(el('option', { value, textContent: `${label}（${n}）` }));
+      });
+      syllabusTypeSelect.value = [...syllabusTypeSelect.options].some(o => o.value === current) ? current : ALL_CATEGORIES;
+    }
+
+    function renderSyllabus() {
+      const category = syllabusCategorySelect.value;
+      const type = syllabusTypeSelect.value;
+      const query = syllabusSearch.value.trim().toLowerCase();
+      const visible = [];
+      state.syllabus.forEach((c, i) => {
+        if (category === NO_CATEGORY ? c.category : (category !== ALL_CATEGORIES && c.category !== category)) return;
+        if (type !== ALL_CATEGORIES && c.type !== type) return;
+        if (query && !c.name.toLowerCase().includes(query) && !c.code.toLowerCase().includes(query)) return;
+        visible.push(i);
+      });
+
+      renderCourseRows(document.getElementById('syllabusBody'), state.syllabus, {
+        slotRequired: false,
+        dayEmptyLabel: '未設定',
+        visible,
+        showCategory: true,
+        showTerm: true,
+        showUrl: true,
+        selection: selections.syllabus,
+        onChange: renderSyllabus,
+        onCategoryChange: () => { renderSyllabusCategories(); renderSyllabus(); }
+      });
+      document.getElementById('syllabusCount').textContent = `${visible.length}件表示`;
+    }
+
+    syllabusCategorySelect.onchange = renderSyllabus;
+    syllabusTypeSelect.onchange = renderSyllabus;
+    syllabusSearch.oninput = renderSyllabus;
+
+    document.getElementById('syllabusAddControls').appendChild(addControls(entries => {
+      const selected = syllabusCategorySelect.value;
+      const category = selected === ALL_CATEGORIES || selected === NO_CATEGORY ? '' : selected;
+      const newRows = entries.map(e => ({ code: e.code, name: e.name, periods: [], day: '', type: 'elective', category, grade: [], semester: [], extra: {} }));
+
+      // 同じ分類の最後の行の直後に追加（分類ごとのまとまりを保つ）
+      let insertAt = state.syllabus.length;
+      if (category) {
+        for (let i = state.syllabus.length - 1; i >= 0; i--) {
+          if (state.syllabus[i].category === category) { insertAt = i + 1; break; }
+        }
+      }
+      state.syllabus.splice(insertAt, 0, ...newRows);
+
+      syllabusSearch.value = '';
+      finishAdd(newRows, selections.syllabus, () => { renderSyllabusCategories(); renderSyllabus(); }, 'syllabusBody');
+    }));
+
+    // ---------- JS コード生成 ----------
+    function quote(s, q) {
+      return q + String(s).replace(/\\/g, '\\\\').replace(new RegExp(q, 'g'), '\\' + q).replace(/\n/g, '\\n') + q;
+    }
+
+    function slotProps(periods, day, q) {
+      const parts = [];
+      if (periods.length === 1) parts.push(`period: ${periods[0]}`);
+      else if (periods.length > 1) parts.push(`periods: [${periods.join(', ')}]`);
+      if (day) parts.push(`day: ${quote(day, q)}`);
+      return parts;
+    }
+
+    function formatValue(v, q) {
+      if (Array.isArray(v)) return `[${v.map(x => formatValue(x, q)).join(', ')}]`;
+      if (typeof v === 'string') return quote(v, q);
+      if (v && typeof v === 'object') return JSON.stringify(v);
+      return String(v);
+    }
+
+    function courseLine(c, q) {
+      const parts = [`code: ${quote(c.code, q)}`, `name: ${quote(c.name, q)}`, ...slotProps(c.periods, c.day, q), `type: ${quote(c.type, q)}`];
+      if (c.grade && c.grade.length) parts.push(`grade: ${formatValue(c.grade, q)}`);
+      if (c.semester && c.semester.length) parts.push(`semester: ${formatValue(c.semester, q)}`);
+      Object.entries(c.extra || {}).forEach(([k, v]) => parts.push(`${k}: ${formatValue(v, q)}`));
+      if (typeof c.category === 'string' && c.category) parts.push(`category: ${quote(c.category, q)}`);
+      if (c.url) parts.push(`url: ${quote(c.url, q)}`);
+      return `{ ${parts.join(', ')} }`;
+    }
+
+    function generateSyllabus() {
+      const q = '"';
+      const lines = [];
+      let prevCategory = null;
+      state.syllabus.forEach((c, i) => {
+        const isLast = i === state.syllabus.length - 1;
+        if (c.category !== prevCategory) {
+          if (i > 0) lines.push('');
+          if (c.category) lines.push(`  // ${c.category}`);
+          prevCategory = c.category;
+        }
+        lines.push(`  ${courseLine(c, q)}${isLast ? '' : ','}`);
+      });
+      return `// 湘南工科大学 シラバスデータ
+// ナンバリング（授業コード）、科目名、必選区分（必修/選択必修/選択）
+// category: 分類（見出しコメントとしても出力される）
+
+const SYLLABUS_COURSES = [
+${lines.join('\n')}
+];
+`;
+    }
+
+    function generateCurriculum() {
+      const q = "'";
+      const blocks = Object.entries(state.curriculum).map(([key, rows]) => {
+        const lines = rows.map(r => `    ${courseLine(r, q)}`).join(',\n');
+        return `  ${quote(key, q)}: [${rows.length ? '\n' + lines + '\n  ' : ''}]`;
+      });
+      return `// 必修科目カリキュラム定義
+// 学年・学期ごとの必修科目データ
+
+const CURRICULUM = {
+${blocks.join(',\n')}
+};
+`;
+    }
+
+    function generateGroups() {
+      const q = '"';
+      const blocks = state.groups.map(g => {
+        const when = g.grade.map(n => `${n}年`).join('・') + g.semester.map(s => s === '1' ? '前期' : '後期').join('・');
+        const props = [
+          `name: ${quote(g.name, q)}`,
+          `description: ${quote(g.description, q)}`,
+          `grade: [${g.grade.join(', ')}]`,
+          `semester: [${g.semester.map(s => quote(s, q)).join(', ')}]`,
+          `maxSelect: ${g.maxSelect}`,
+          ...slotProps(g.periods, g.day, q)
+        ];
+        const courses = g.courses.map(c => `      ${courseLine(c, q)}`).join(',\n');
+        return `  // ${when}：${g.name}
+  ${g.id}: {
+    ${props.join(',\n    ')},
+    courses: [${g.courses.length ? '\n' + courses + '\n    ' : ''}]
+  }`;
+      });
+      return `// 選択必修科目データ
+// 学年・学期に応じた選択必修科目を管理
+// grade: 対象学年, semester: 対象学期("1":前期, "2":後期), periods/period: 時限, day: 曜日
+// グループに periods/day を書くと全科目共通、科目側に書くとその科目だけの時限・曜日になる
+
+const ELECTIVE_REQUIRED_GROUPS = {
+${blocks.join(',\n\n')}
+};
+`;
+    }
+
+    const outputSelect = document.getElementById('outputSelect');
+    function renderOutput() {
+      const generators = { curriculum: generateCurriculum, groups: generateGroups, syllabus: generateSyllabus };
+      document.getElementById('output').value = generators[outputSelect.value]();
+    }
+    outputSelect.onchange = renderOutput;
+
+    // ---------- 保存 ----------
+    function validate(kind) {
+      const problems = [];
+      if (kind === 'curriculum') {
+        Object.entries(state.curriculum).forEach(([key, rows]) => rows.forEach((r, i) => {
+          if (!r.name.trim()) problems.push(`${keyLabel(key)} ${i + 1}行目：科目名が空です`);
+          if (!r.periods.length || !r.day) problems.push(`${keyLabel(key)}「${r.name}」：時限・曜日が未設定です`);
+        }));
+      } else if (kind === 'syllabus') {
+        state.syllabus.forEach((c, i) => {
+          if (!c.name.trim()) problems.push(`${i + 1}行目（${c.category || '分類なし'}）：科目名が空です`);
+          if (!c.code.trim()) problems.push(`「${c.name}」：授業コードが空です`);
+        });
+      } else {
+        state.groups.forEach(g => {
+          if (!g.grade.length || !g.semester.length) problems.push(`${g.name}：対象学年・学期が未設定です`);
+          g.courses.forEach((c, i) => { if (!c.name.trim()) problems.push(`${g.name} ${i + 1}行目：科目名が空です`); });
+        });
+      }
+      return problems;
+    }
+
+    async function saveFile(filename, text, kind) {
+      const problems = validate(kind);
+      if (problems.length && !confirm(`次の問題があります。このまま保存しますか？\n\n${problems.slice(0, 15).join('\n')}${problems.length > 15 ? `\n…ほか${problems.length - 15}件` : ''}`)) {
+        return;
+      }
+
+      if (window.showSaveFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: 'JavaScript', accept: { 'text/javascript': ['.js'] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(text);
+          await writable.close();
+          markSaved();
+          return;
+        } catch (e) {
+          if (e.name === 'AbortError') return;
+          console.warn('showSaveFilePicker に失敗したためダウンロードに切り替えます', e);
+        }
+      }
+
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/javascript' }));
+      const a = el('a', { href: url, download: filename });
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      markSaved();
+    }
+
+    document.getElementById('saveCurriculum').onclick = () => saveFile('required_curriculum.js', generateCurriculum(), 'curriculum');
+    document.getElementById('saveGroups').onclick = () => saveFile('elective_required.js', generateGroups(), 'groups');
+    document.getElementById('saveSyllabus').onclick = () => saveFile('syllabus_data.js', generateSyllabus(), 'syllabus');
+    document.getElementById('copyOutput').onclick = async () => {
+      const text = document.getElementById('output').value;
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('コピーしました');
+      } catch {
+        document.getElementById('output').select();
+        alert('コピーできませんでした。テキストを選択したので Ctrl+C でコピーしてください。');
+      }
+    };
+
+    // ---------- タブ ----------
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+        ['curriculum', 'groups', 'syllabus'].forEach(name => {
+          document.getElementById(`tab-${name}`).hidden = tab.dataset.tab !== name;
+        });
+        outputSelect.value = tab.dataset.tab;
+        renderOutput();
+      };
+    });
+
+    // ---------- 初期表示 ----------
+    renderCurriculum();
+    renderGroupSelect();
+    renderGroupEditor();
+    renderSyllabusCategories();
+    renderSyllabus();
+    renderOutput();
+  </script>
+</body>
+</html>
